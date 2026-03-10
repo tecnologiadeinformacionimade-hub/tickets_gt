@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Helpdesk IT</title>
+    <!-- Tailwind CSS para estilos rápidos y modernos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons para los íconos (ojo, candado, usuario) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 flex flex-col justify-center min-h-screen sm:px-6 lg:px-8 font-sans selection:bg-brand-500 selection:text-white">
+
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <!-- Logo / Icono -->
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-brand-100">
+            <i class="ph ph-headset text-3xl text-brand-600"></i>
+        </div>
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Portal de Helpdesk
+        </h2>
+        <p class="mt-2 text-center text-sm text-gray-600">
+            Inicia sesión con tu cuenta corporativa
+        </p>
+    </div>
+
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="bg-white py-8 px-4 shadow sm:rounded-xl sm:px-10 border border-gray-100">
+            
+            <!-- Mensaje de Error (Oculto por defecto) -->
+            <div id="error-message" class="hidden mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                <div class="flex items-center">
+                    <i class="ph-fill ph-warning-circle text-red-500 text-xl mr-2"></i>
+                    <p id="error-text" class="text-sm text-red-700"></p>
+                </div>
+            </div>
+
+            <form id="login-form" class="space-y-6">
+                <!-- Input: Login -->
+                <div>
+                    <label for="login" class="block text-sm font-medium text-gray-700">
+                        Login (Usuario)
+                    </label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ph ph-user text-gray-400 text-lg"></i>
+                        </div>
+                        <input id="login" name="login" type="text" required
+                            class="focus:ring-brand-500 focus:border-brand-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2.5 border outline-none transition-colors"
+                            placeholder="Ej. admin o h.reyes@...">
+                    </div>
+                </div>
+
+                <!-- Input: Contraseña -->
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">
+                        Contraseña
+                    </label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ph ph-lock-key text-gray-400 text-lg"></i>
+                        </div>
+                        <input id="password" name="password" type="password" required
+                            class="focus:ring-brand-500 focus:border-brand-500 block w-full pl-10 pr-10 sm:text-sm border-gray-300 rounded-md py-2.5 border outline-none transition-colors"
+                            placeholder="••••••••">
+                        <!-- Toggle de contraseña -->
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" onclick="togglePassword()">
+                            <i id="eye-icon" class="ph ph-eye text-gray-400 hover:text-gray-600 text-lg transition-colors"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botón de Submit -->
+                <div>
+                    <button type="submit" id="submit-btn"
+                        class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                        <span id="btn-text">Iniciar Sesión</span>
+                        <i id="btn-spinner" class="ph ph-spinner animate-spin text-xl hidden"></i>
+                    </button>
+                </div>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-xs text-gray-500">Conectado a Google Sheets Database</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // URL de tu Google Apps Script
+        const SCRIPT_URL = https://script.google.com/macros/s/AKfycbyk4_jn7AwQUgDp7yUlc4-CBJnIWSBiPeAp0VZy2VKiS6rzpYSsHQlKPMM3UPrTHCs/exec";
+
+        // Función para mostrar/ocultar contraseña
+        function togglePassword() {
+            const pwdInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                eyeIcon.classList.remove('ph-eye');
+                eyeIcon.classList.add('ph-eye-slash');
+            } else {
+                pwdInput.type = 'password';
+                eyeIcon.classList.remove('ph-eye-slash');
+                eyeIcon.classList.add('ph-eye');
+            }
+        }
+
+        // Función para mostrar errores
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+            
+            // Efecto de sacudida (shake)
+            errorDiv.classList.add('animate-pulse');
+            setTimeout(() => errorDiv.classList.remove('animate-pulse'), 500);
+        }
+
+        // Manejar el envío del formulario
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const loginVal = document.getElementById('login').value.trim();
+            const passwordVal = document.getElementById('password').value;
+            const btn = document.getElementById('submit-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+            const errorDiv = document.getElementById('error-message');
+
+            // 1. Estado de "Cargando"
+            btn.disabled = true;
+            btnText.classList.add('hidden');
+            btnSpinner.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+
+            try {
+                // 2. Llamada a Google Sheets
+                // Agregamos ?action=getUsers y ?sheet=usuarios por si tu script lo requiere para filtrar.
+                const response = await fetch(`${SCRIPT_URL}?action=getUsers&sheet=usuarios`);
+                
+                if (!response.ok) throw new Error("Error de red.");
+                
+                const data = await response.json();
+                
+                // 3. Buscar coincidencia (Soporta que devuelva un Array directo o un objeto {data: [...]})
+                let usersList = Array.isArray(data) ? data : (data.data || data.users || []);
+                
+                // Validar credenciales (busca por Login exacto y Contraseña)
+                const userMatched = usersList.find(u => 
+                    String(u.Login).toLowerCase() === loginVal.toLowerCase() && 
+                    String(u['Contraseña']) === passwordVal
+                );
+
+                if (userMatched) {
+                    // ¡Éxito! Guardamos datos básicos en sessionStorage para uso en las siguientes páginas
+                    sessionStorage.setItem('helpdesk_user', JSON.stringify({
+                        login: userMatched.Login,
+                        nombre: userMatched.Nombre,
+                        rol: userMatched.Rol,
+                        departamento: userMatched.Departamento
+                    }));
+
+                    // 4. Redirección basada en el Rol
+                    const rol = String(userMatched.Rol).trim();
+                    
+                    if (rol === 'Admin') {
+                        window.location.href = 'admin.html';
+                    } else if (rol === 'Usuario') {
+                        window.location.href = 'user.html';
+                    } else if (rol === 'Operador') {
+                        window.location.href = 'operador.html';
+                    } else {
+                        showError(`Rol no configurado: ${rol}. Contacte soporte.`);
+                    }
+
+                } else {
+                    // Fallo de credenciales
+                    showError("Usuario o contraseña incorrectos.");
+                }
+
+            } catch (error) {
+                console.error("Error en login:", error);
+                showError("No se pudo conectar con la base de datos de Google Sheets. Asegúrate de que el Script esté publicado correctamente.");
+            } finally {
+                // 5. Restaurar botón a estado normal
+                btn.disabled = false;
+                btnText.classList.remove('hidden');
+                btnSpinner.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
