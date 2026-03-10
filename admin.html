@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Panel de Administración - Helpdesk</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Tailwind CSS (Modo Claro Únicamente - AZUL CORPORATIVO) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' },
+                        accent: { 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden selection:bg-brand-200 selection:text-brand-900 relative">
+
+    <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[9000] flex flex-col gap-2 items-center pointer-events-none"></div>
+
+    <!-- HEADER CORPORATIVO (ADMINISTRADOR) -->
+    <div id="app-header" class="bg-brand-800 border-b border-brand-900 px-4 md:px-6 flex justify-between items-center shadow-lg z-20 h-16 shrink-0 transition-colors">
+        <div class="flex items-center space-x-6 h-full">
+            <div class="flex items-center space-x-3 cursor-pointer group" onclick="showView('dashboard-view')">
+                <div class="bg-brand-900 p-2 rounded text-white group-hover:bg-brand-700 transition-colors"><i class="fas fa-laptop-medical"></i></div>
+                <div class="hidden sm:block">
+                    <h1 class="text-sm font-black text-white tracking-wide leading-tight">ADMIN PANEL</h1>
+                    <p class="text-[9px] text-brand-300 uppercase tracking-widest font-bold">IT Helpdesk</p>
+                </div>
+            </div>
+            
+            <nav id="admin-nav" class="h-full flex items-center space-x-1 border-l border-brand-700 pl-4 overflow-x-auto">
+                <a href="#" id="nav-tickets" onclick="showView('dashboard-view'); loadTickets();" class="nav-link h-full px-4 flex items-center text-sm font-bold transition-colors bg-brand-900 text-white whitespace-nowrap"><i class="fas fa-ticket-alt mr-2"></i> Tickets</a>
+                <a href="#" id="nav-users" onclick="loadUsers()" class="nav-link h-full px-4 flex items-center text-sm font-bold transition-colors text-brand-100 hover:bg-brand-700 whitespace-nowrap"><i class="fas fa-users mr-2"></i> Usuarios</a>
+                <a href="#" id="nav-reports" onclick="loadReports()" class="nav-link h-full px-4 flex items-center text-sm font-bold transition-colors text-brand-100 hover:bg-brand-700 whitespace-nowrap"><i class="fas fa-chart-bar mr-2"></i> Reportes</a>
+            </nav>
+        </div>
+
+        <div class="flex items-center space-x-3 md:space-x-4">
+            <div class="text-right hidden sm:block">
+                <div id="header-user-name" class="text-sm font-bold text-white">Administrador</div>
+                <div class="flex items-center justify-end gap-2 mt-0.5">
+                    <div id="header-user-role" class="text-[9px] text-red-200 bg-red-900 px-1.5 py-0.5 rounded uppercase tracking-widest font-bold">Admin IT</div>
+                    <div id="header-user-email" class="text-[10px] text-brand-300 truncate max-w-[120px]">admin@sistema.com</div>
+                </div>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center text-white font-bold border border-red-700 shadow-sm"><i class="fas fa-user-shield text-sm"></i></div>
+            <div class="border-l border-brand-700 h-6 mx-1"></div>
+            <button onclick="logout()" class="text-brand-300 hover:text-white transition-colors p-2" title="Cerrar sesión">
+                <i class="fas fa-sign-out-alt text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- PANTALLA 1: DASHBOARD DE TICKETS -->
+    <div id="dashboard-view" class="flex-1 flex flex-col p-4 md:p-6 overflow-hidden fade-in">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 max-w-7xl mx-auto w-full gap-4">
+            <div>
+                <h2 class="text-2xl font-black text-gray-800 tracking-tight">Centro de Requerimientos</h2>
+                <p class="text-sm text-gray-500 mt-1 font-medium">Gestión integral de incidentes del sistema.</p>
+            </div>
+            <div class="flex space-x-3 w-full md:w-auto">
+                <button onclick="loadTickets()" class="flex-1 md:flex-none px-4 py-2 bg-white border border-gray-200 rounded-sm shadow-sm text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-2 text-brand-600"></i> <span class="hidden sm:inline">Sincronizar</span>
+                </button>
+                <!-- Aunque es admin, puede crear tickets en nombre de alguien -->
+                <button onclick="showView('new-ticket-view')" class="flex-1 md:flex-none px-5 py-2 bg-brand-600 border border-transparent rounded-sm shadow-md shadow-brand-500/20 text-sm font-bold text-white hover:bg-brand-700 transition-transform hover:-translate-y-0.5 flex items-center justify-center">
+                    <i class="fas fa-plus mr-2"></i> Nuevo Ticket
+                </button>
+            </div>
+        </div>
+
+        <!-- Buscador -->
+        <div class="mb-4 max-w-7xl mx-auto w-full">
+            <div class="relative bg-white rounded-sm shadow-sm border border-gray-200">
+                <i class="fas fa-search absolute left-4 top-3.5 text-gray-400 text-sm"></i>
+                <input type="text" id="filter-search" onkeyup="applyFilters()" placeholder="Buscar ticket por ID, asunto, nombre de usuario o técnico..." class="w-full pl-10 pr-4 py-3 text-sm outline-none font-medium text-gray-700 bg-transparent placeholder-gray-400 rounded-sm focus:ring-2 focus:ring-brand-500">
+            </div>
+        </div>
+
+        <!-- Filtros Rápidos IT -->
+        <div id="it-tabs-container" class="border-b border-gray-200 mb-4 flex gap-6 px-2 overflow-x-auto custom-scroll max-w-7xl mx-auto w-full pb-1">
+            <button onclick="setTab('Todos')" id="tab-Todos" class="pb-3 text-sm font-bold border-b-2 border-brand-600 text-brand-700 transition-colors flex items-center whitespace-nowrap">Todos <span id="count-todos" class="ml-2 bg-brand-100 text-brand-800 py-0.5 px-2 rounded-full text-[10px]">0</span></button>
+            <button onclick="setTab('Abierto')" id="tab-Abierto" class="pb-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors flex items-center whitespace-nowrap">Nuevos <span id="count-abierto" class="ml-2 bg-gray-200 text-gray-600 py-0.5 px-2 rounded-full text-[10px]">0</span></button>
+            <button onclick="setTab('En proceso')" id="tab-En proceso" class="pb-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors flex items-center whitespace-nowrap">En Proceso <span id="count-enproceso" class="ml-2 bg-gray-200 text-gray-600 py-0.5 px-2 rounded-full text-[10px]">0</span></button>
+            <button onclick="setTab('Pendiente')" id="tab-Pendiente" class="pb-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors flex items-center whitespace-nowrap">En Espera <span id="count-pendiente" class="ml-2 bg-gray-200 text-gray-600 py-0.5 px-2 rounded-full text-[10px]">0</span></button>
+            <button onclick="setTab('Cerrado')" id="tab-Cerrado" class="pb-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors flex items-center whitespace-nowrap">Resueltos <span id="count-cerrado" class="ml-2 bg-gray-200 text-gray-600 py-0.5 px-2 rounded-full text-[10px]">0</span></button>
+        </div>
+
+        <!-- Tabla -->
+        <div class="bg-white rounded-sm shadow-sm border border-gray-200 flex-1 overflow-auto max-w-7xl mx-auto w-full custom-scroll">
+            <table class="min-w-full divide-y divide-gray-100 text-left">
+                <thead class="bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
+                    <tr>
+                        <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">ID</th>
+                        <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Asunto</th>
+                        <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Fecha Creado</th>
+                        <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Prioridad</th>
+                        <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Estado</th>
+                        <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Solicitante</th>
+                        <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap hidden md:table-cell">Técnico</th>
+                    </tr>
+                </thead>
+                <tbody id="tickets-tbody" class="divide-y divide-gray-100"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PANTALLA 2: VISTA DEL TICKET (GESTIÓN IT) -->
+    <div id="ticket-detail-view" class="hidden flex-1 flex flex-col p-4 md:p-6 overflow-hidden fade-in bg-gray-100">
+        
+        <!-- Panel de Control Superior IT -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 max-w-7xl mx-auto w-full pb-2 gap-4">
+            <button onclick="showView('dashboard-view')" class="text-gray-500 hover:text-gray-800 text-sm font-bold flex items-center transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-sm shadow-sm">
+                <i class="fas fa-arrow-left mr-2"></i> Regresar al panel
+            </button>
+            
+            <div id="it-controls" class="flex flex-wrap items-center gap-3 bg-white p-2 rounded-sm border border-brand-200 shadow-sm w-full md:w-auto">
+                <span class="text-[10px] font-black text-brand-700 uppercase tracking-widest px-2"><i class="fas fa-cog mr-1"></i> Control IT</span>
+                
+                <select id="ctrl-prioridad" class="text-xs font-bold border border-gray-300 rounded-sm py-1.5 px-3 bg-white outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer">
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Baja">Baja</option>
+                    <option value="Media">Media</option>
+                    <option value="Alta">Alta</option>
+                    <option value="Crítica">Crítica</option>
+                </select>
+
+                <select id="ctrl-estado" class="text-xs font-bold border border-gray-300 rounded-sm py-1.5 px-3 bg-white outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer">
+                    <option value="Abierto">Abierto</option>
+                    <option value="En proceso">En proceso</option>
+                    <option value="Pendiente">Pendiente (Usuario)</option>
+                    <option value="Cerrado">Resuelto</option>
+                </select>
+                
+                <!-- Input para el nombre del técnico (Auto-rellenado con el admin actual) -->
+                <input type="text" id="ctrl-tecnico" placeholder="Técnico" class="text-xs font-bold border border-gray-300 rounded-sm py-1.5 px-3 w-32 bg-white outline-none focus:ring-1 focus:ring-brand-500">
+                
+                <button id="btn-save-ticket" onclick="updateTicketState()" class="bg-accent-500 text-white px-4 py-1.5 rounded-sm text-xs font-bold hover:bg-accent-600 transition-colors shadow-sm ml-auto md:ml-0">
+                    Guardar Cambios
+                </button>
+                <button id="btn-delete-ticket" onclick="confirmDeleteTicket()" class="text-xs text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-sm transition-colors shadow-sm" title="Eliminar Definitivo">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row flex-1 gap-4 lg:gap-6 overflow-hidden max-w-7xl mx-auto w-full">
+            
+            <!-- PANEL IZQUIERDO: INFO DEL TICKET -->
+            <div class="w-full lg:w-[35%] xl:w-1/3 bg-white rounded-md shadow-sm border border-gray-200 flex flex-col overflow-y-auto custom-scroll shrink-0">
+                <div class="p-5 border-b border-gray-100 bg-gray-50/50">
+                    <div class="flex justify-between items-start mb-3">
+                        <span id="dt-id" class="text-2xl font-black text-gray-800 tracking-tight">TKT-XXXX</span>
+                        <span id="dt-priority" class="inline-flex items-center px-2 py-1 rounded-sm text-[10px] uppercase font-bold border border-gray-200 bg-white text-gray-600 shadow-sm">Prioridad</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span id="dt-status" class="inline-flex items-center px-2.5 py-1 rounded-sm text-[10px] uppercase font-bold bg-yellow-100 text-yellow-800 border border-yellow-200 shadow-sm">Estado</span>
+                        <span id="dt-tecnico-badge" class="inline-flex items-center px-3 py-1 rounded-sm text-[10px] font-bold bg-gray-200 text-gray-600">Asignado a: -</span>
+                    </div>
+                </div>
+
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="mb-5">
+                        <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Problema / Asunto</div>
+                        <h3 id="dt-title" class="text-sm font-bold text-gray-800 leading-snug">Título</h3>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mb-5 relative shadow-sm">
+                        <div class="absolute -top-2.5 left-4 bg-gray-50 px-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Información del Solicitante</div>
+                        
+                        <div class="flex items-center mb-3 mt-1">
+                            <div class="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 mr-3 shadow-sm shrink-0"><i class="fas fa-user text-xs"></i></div>
+                            <div id="dt-user" class="text-sm font-bold text-gray-800 break-all">Usuario</div>
+                        </div>
+                        <div id="dt-extra" class="text-xs text-gray-600 font-medium flex flex-wrap items-center gap-y-2 mt-2 pt-3 border-t border-gray-200">
+                        </div>
+
+                        <!-- Panel AnyDesk visible solo si existe -->
+                        <div id="dt-anydesk-container" class="mt-3 pt-3 border-t border-gray-200 hidden">
+                            <div class="flex items-center bg-blue-50 border border-blue-200 rounded-md p-2">
+                                <div class="bg-blue-600 text-white p-1.5 rounded mr-3 shadow-sm"><i class="fas fa-desktop"></i></div>
+                                <div>
+                                    <div class="text-[9px] font-black text-blue-600 uppercase tracking-widest">Conexión AnyDesk</div>
+                                    <div id="dt-anydesk-text" class="text-sm font-bold text-blue-900 tracking-wide font-mono">123456789</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1">
+                        <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2"><i class="fas fa-align-left mr-1"></i> Descripción Original</div>
+                        <div id="dt-desc" class="text-[13px] text-gray-700 bg-white p-4 rounded-md border border-gray-200 whitespace-pre-wrap leading-relaxed font-medium shadow-sm h-full min-h-[100px]"></div>
+                    </div>
+
+                    <div id="dt-adjunto-container" class="hidden mt-4 pt-4 border-t border-gray-100">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2"><i class="fas fa-paperclip mr-1"></i> Evidencia Adjunta (Ticket Original)</p>
+                        <a id="dt-adjunto-link" href="#" target="_blank" class="flex items-center p-3 bg-brand-50 border border-brand-200 rounded-md hover:bg-brand-100 transition-colors group">
+                            <div class="w-10 h-10 bg-brand-200 text-brand-700 rounded-md flex items-center justify-center mr-3 shadow-sm">
+                                <i class="fas fa-file-image text-lg"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-sm font-bold text-brand-800">Ver Archivo Adjunto</h4>
+                                <p class="text-[10px] text-brand-600 font-medium uppercase tracking-wider">Abrir en nueva pestaña</p>
+                            </div>
+                            <i class="fas fa-external-link-alt text-brand-500 group-hover:scale-110 transition-transform"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL DERECHO: CHAT IT -->
+            <div class="w-full lg:w-[65%] xl:w-2/3 flex flex-col bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-white px-5 py-3 border-b border-gray-200 flex justify-between items-center z-10 shadow-sm relative">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-md bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 mr-3 shadow-sm"><i class="fas fa-comments"></i></div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-sm leading-tight">Seguimiento y Comunicación</h3>
+                            <div class="text-[10px] text-gray-400 font-medium">Interacción con el usuario.</div>
+                        </div>
+                    </div>
+                    <button onclick="renderMessages(true)" class="text-xs text-accent-600 hover:text-accent-800 font-bold bg-accent-50 px-3 py-1.5 rounded-sm border border-accent-100 transition-colors flex items-center">
+                        <i class="fas fa-sync-alt mr-1"></i> <span class="hidden sm:inline">Refrescar Chat</span>
+                    </button>
+                </div>
+                
+                <div id="chat-container" class="flex-1 p-5 overflow-y-auto bg-gray-50/50 custom-scroll flex flex-col">
+                    <!-- Mensajes dinámicos aquí -->
+                </div>
+
+                <div id="chat-input-area" class="p-4 bg-white border-t border-gray-200 z-10 shadow-[0_-4px_10px_-1px_rgba(0,0,0,0.05)]">
+                    <div class="text-[10px] uppercase font-black text-brand-600 mb-2 flex items-center"><i class="fas fa-shield-alt mr-1.5"></i> Panel de Respuesta (El usuario será notificado)</div>
+                    
+                    <div id="file-preview-pill" class="hidden mb-3 inline-flex items-center bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-sm shadow-sm">
+                        <i class="fas fa-paperclip text-brand-600 text-xs mr-2"></i>
+                        <span id="file-name-display" class="text-xs font-bold text-brand-800 max-w-[150px] truncate">archivo.jpg</span>
+                        <i class="fas fa-times text-gray-400 hover:text-red-500 cursor-pointer ml-3 text-xs" onclick="document.getElementById('chat-file').value=''; handleFileSelection(document.getElementById('chat-file'), 'file-preview-pill', 'file-name-display');"></i>
+                    </div>
+
+                    <div class="border border-gray-300 rounded-md bg-white overflow-hidden flex flex-col focus-within:border-accent-500 focus-within:ring-1 focus-within:ring-accent-500 transition-shadow">
+                        <textarea id="chat-input" class="w-full bg-transparent px-4 py-3 text-sm outline-none resize-none overflow-hidden min-h-[60px] max-h-48 custom-scroll" placeholder="Escribe tu respuesta aquí. El usuario será notificado por correo..." oninput="autoExpand(this)"></textarea>
+                        
+                        <div class="bg-gray-50 px-4 py-2 border-t border-gray-200 flex justify-between items-center">
+                            <label for="chat-file" class="cursor-pointer text-gray-600 hover:text-brand-600 flex items-center text-xs font-bold transition-colors px-2 py-1 rounded hover:bg-gray-200">
+                                <i class="fas fa-paperclip mr-1 sm:mr-2"></i> <span class="hidden sm:inline">Adjuntar Documento</span>
+                            </label>
+                            <input type="file" id="chat-file" class="hidden" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="handleFileSelection(this, 'file-preview-pill', 'file-name-display')">
+                            
+                            <button onclick="sendMessage()" class="bg-brand-600 text-white px-5 py-2 rounded-sm text-xs font-bold hover:bg-brand-700 transition-colors shadow-sm flex items-center">
+                                Enviar Mensaje <i class="fas fa-paper-plane ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA 3: USUARIOS (SOLO ADMIN) -->
+    <div id="users-view" class="hidden flex-1 flex flex-col p-4 md:p-6 bg-gray-100 overflow-hidden fade-in">
+        <div class="max-w-7xl mx-auto w-full flex-1 flex flex-col">
+            <div class="mb-4">
+                <h2 class="text-2xl font-black text-gray-800">Gestión de Usuarios</h2>
+                <p class="text-sm text-gray-500 mt-1 font-medium">Administra las cuentas y roles del sistema.</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-6 flex-1 overflow-hidden">
+                <!-- Panel Crear Usuario -->
+                <div class="w-full md:w-[35%] bg-white rounded-md shadow-sm border border-gray-200 p-5 flex flex-col shrink-0 overflow-y-auto custom-scroll">
+                    <h3 class="font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2 text-sm uppercase tracking-widest">Registrar Nuevo</h3>
+                    <form id="form-new-user" onsubmit="submitNewUser(event)" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Nombre Corto *</label>
+                                <input type="text" id="nu-login" required class="w-full border border-gray-300 rounded-sm p-2 text-sm outline-none focus:border-brand-500 bg-white" placeholder="Ej. Juan">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Nombre Comp. *</label>
+                                <input type="text" id="nu-nombre" required class="w-full border border-gray-300 rounded-sm p-2 text-sm outline-none focus:border-brand-500 bg-white" placeholder="Juan Pérez">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Correo Electrónico *</label>
+                            <input type="email" id="nu-usuario" required class="w-full border border-gray-300 rounded-sm p-2 text-sm outline-none focus:border-brand-500 bg-white" placeholder="juan@grupoimade.com">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Contraseña *</label>
+                            <input type="text" id="nu-password" required class="w-full border border-gray-300 rounded-sm p-2 text-sm outline-none focus:border-brand-500 bg-white" value="123456">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Rol</label>
+                                <select id="nu-rol" class="w-full border border-gray-300 rounded-sm p-2 text-sm outline-none focus:border-brand-500 bg-white">
+                                    <option value="Usuario">Usuario</option>
+                                    <option value="Operador">Operador IT</option>
+                                    <option value="Admin">Admin IT</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Departamento</label>
+                                <input type="text" id="nu-depart" required class="w-full border border-gray-300 rounded-sm p-2 text-sm outline-none focus:border-brand-500 bg-white">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-brand-600 text-white font-bold text-sm py-2.5 rounded-sm hover:bg-brand-700 transition-colors shadow-sm mt-4">
+                            Guardar Perfil
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Tabla Usuarios -->
+                <div class="flex-1 bg-white rounded-md shadow-sm border border-gray-200 overflow-auto custom-scroll relative">
+                    <table class="min-w-full divide-y divide-gray-100 text-left">
+                        <thead class="bg-gray-50 sticky top-0 z-10 border-b border-gray-200 shadow-sm">
+                            <tr>
+                                <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Login</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Nombre</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Correo</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Rol</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Password</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center"><i class="fas fa-cog"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody" class="bg-white divide-y divide-gray-50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA 4: REPORTES Y EXPORTACIÓN -->
+    <div id="reports-view" class="hidden flex-1 flex flex-col p-4 md:p-6 bg-gray-100 overflow-auto custom-scroll fade-in">
+        <div class="max-w-5xl mx-auto w-full">
+            <h2 class="text-2xl font-black text-gray-800 tracking-tight mb-6">Métricas y Exportación</h2>
+            
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+                <div class="bg-white p-5 md:p-6 rounded-md shadow-sm border border-gray-200 border-t-4 border-t-brand-500 flex flex-col justify-center">
+                    <div class="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Total Registros</div>
+                    <div id="rep-total" class="text-3xl md:text-4xl font-black text-gray-800">0</div>
+                </div>
+                <div class="bg-white p-5 md:p-6 rounded-md shadow-sm border border-gray-200 border-t-4 border-t-red-500 flex flex-col justify-center">
+                    <div class="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Nuevos / Espera</div>
+                    <div id="rep-abiertos" class="text-3xl md:text-4xl font-black text-gray-800">0</div>
+                </div>
+                <div class="bg-white p-5 md:p-6 rounded-md shadow-sm border border-gray-200 border-t-4 border-t-yellow-500 flex flex-col justify-center">
+                    <div class="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">En Proceso</div>
+                    <div id="rep-proceso" class="text-3xl md:text-4xl font-black text-gray-800">0</div>
+                </div>
+                <div class="bg-white p-5 md:p-6 rounded-md shadow-sm border border-gray-200 border-t-4 border-t-green-500 flex flex-col justify-center">
+                    <div class="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Resueltos</div>
+                    <div id="rep-cerrados" class="text-3xl md:text-4xl font-black text-gray-800">0</div>
+                </div>
+            </div>
+
+            <div class="mt-8 bg-brand-50 border border-brand-200 rounded-md p-6 md:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-sm gap-4">
+                <div>
+                    <h3 class="font-bold text-brand-900 text-lg mb-1">Generar Archivo CSV</h3>
+                    <p class="text-brand-700 text-sm">Descargue el histórico completo con todos los datos clave (Incluyendo AnyDesk, Fechas y Tiempos) listos para usar en Excel o PowerBI.</p>
+                </div>
+                <button onclick="exportarCSV()" class="bg-brand-600 text-white font-bold px-6 py-3 rounded-sm hover:bg-brand-700 transition-colors flex items-center shadow-md whitespace-nowrap">
+                    <i class="fas fa-file-excel mr-2 text-green-200 text-lg"></i> Descargar Datos
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PANTALLA 5: CREAR TICKET (Opcional, los admins también pueden crearlos) -->
+    <div id="new-ticket-view" class="hidden flex-1 flex flex-col p-4 md:p-6 fade-in overflow-y-auto custom-scroll">
+        <div class="max-w-4xl w-full mx-auto bg-white rounded-lg shadow-xl border border-gray-200 p-6 md:p-8 my-4 relative">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-brand-600 rounded-t-lg"></div>
+            <div class="flex items-center justify-between mb-8 border-b border-gray-100 pb-5">
+                <div>
+                    <h2 class="text-2xl font-black text-gray-800">Generar Solicitud Manual</h2>
+                    <p class="text-sm text-gray-500 mt-1 font-medium">Crear un ticket en nombre de un usuario o mantenimiento interno.</p>
+                </div>
+                <button onclick="showView('dashboard-view')" class="text-gray-400 hover:bg-gray-100 w-10 h-10 rounded-full transition-colors flex items-center justify-center text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <form id="form-new-ticket" onsubmit="submitNewTicket(event)" class="space-y-6">
+                <!-- Bloque de Contacto -->
+                <div class="bg-gray-50 p-5 rounded-md border border-gray-200 relative">
+                    <div class="absolute -top-3 left-4 bg-gray-50 px-2 text-[10px] font-black text-brand-600 uppercase tracking-widest">Información de Ubicación y Equipo</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-widest">Empresa <span class="text-red-500">*</span></label>
+                            <select id="nt-empresa" required onchange="updateSucursales()" class="w-full border border-gray-300 rounded-sm p-2 text-sm bg-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm">
+                                <option value="">Seleccionar...</option>
+                                <option value="Grupo Imade">Grupo Imade</option>
+                                <option value="Sayer">Sayer</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-widest">Sucursal / Ubicación <span class="text-red-500">*</span></label>
+                            <select id="nt-sucursal" required class="w-full border border-gray-300 rounded-sm p-2 text-sm bg-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm">
+                                <option value="">Seleccione empresa primero...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-widest">Teléfono / Extensión <span class="text-red-500">*</span></label>
+                            <input type="text" id="nt-telefono" required class="w-full border border-gray-300 rounded-sm p-2 text-sm bg-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm" placeholder="Ej. Ext 123 o 5555-5555">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-widest">ID AnyDesk (Opcional)</label>
+                            <div class="relative">
+                                <i class="fas fa-desktop absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+                                <input type="text" id="nt-anydesk" class="w-full pl-9 pr-3 border border-gray-300 rounded-sm p-2 text-sm bg-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm" placeholder="Ej. 123 456 789">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bloque del Problema -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">ASUNTO PRINCIPAL <span class="text-red-500">*</span></label>
+                    <input type="text" id="nt-titulo" required class="w-full border border-gray-300 rounded-sm p-3 text-sm bg-white outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 font-medium shadow-sm" placeholder="Ej. Falla en el acceso al servidor o ERP">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-2">DESCRIPCIÓN DETALLADA <span class="text-red-500">*</span></label>
+                    <textarea id="nt-descripcion" required rows="5" class="w-full border border-gray-300 rounded-sm p-4 text-sm bg-white outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 resize-none font-medium leading-relaxed shadow-sm" placeholder="Proporcione detalles..."></textarea>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-gray-100 mt-8 gap-4">
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider text-center sm:text-left"><i class="fas fa-shield-alt mr-1"></i> Conexión Segura Helpdesk</p>
+                    <button type="submit" id="btn-submit-ticket" class="w-full sm:w-auto px-8 py-3 rounded-sm text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors shadow-md shadow-brand-500/20 flex items-center justify-center disabled:opacity-50">
+                        Generar Ticket <i class="fas fa-paper-plane ml-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- MODALES DE SISTEMA Y UTILIDAD                -->
+    <!-- ========================================== -->
+    
+    <!-- PANTALLA DE CARGA -->
+    <div id="loader" class="fixed inset-0 bg-gray-900/80 z-[9000] hidden justify-center items-center backdrop-blur-sm transition-all">
+        <div class="bg-white p-6 rounded-md shadow-2xl flex flex-col items-center gap-4 border border-brand-200">
+            <i class="fas fa-circle-notch fa-spin text-brand-600 text-4xl"></i>
+            <span class="font-bold text-gray-700">Sincronizando Sistema...</span>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMAR ELIMINAR TICKET -->
+    <div id="modal-delete-confirm" class="fixed inset-0 bg-gray-900/60 z-[8000] hidden justify-center items-center backdrop-blur-sm p-4 fade-in">
+        <div class="bg-white rounded-lg shadow-2xl max-w-sm w-full p-6 text-center border-t-4 border-red-600">
+            <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-3"></i>
+            <h3 class="text-lg font-bold text-gray-800 mb-1">Eliminar Ticket Permanentemente</h3>
+            <p class="text-xs text-gray-500 mb-4">Vas a eliminar el ticket <strong id="delete-ticket-id" class="text-gray-800"></strong>. Esta acción NO se puede deshacer.</p>
+            <div class="text-left mb-4">
+                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Escribe "ELIMINAR"</label>
+                <input type="text" id="delete-confirm-input" class="w-full border border-gray-300 rounded-sm p-2 text-sm bg-gray-50 text-gray-800 outline-none focus:border-red-500">
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('modal-delete-confirm')" class="flex-1 bg-gray-200 text-gray-800 font-bold py-2 rounded-sm hover:bg-gray-300 transition-colors text-sm">Cancelar</button>
+                <button onclick="executeDeleteTicket()" class="flex-1 bg-red-600 text-white font-bold py-2 rounded-sm hover:bg-red-700 transition-colors text-sm">Borrar Definitivo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR USUARIO -->
+    <div id="modal-edit-user" class="fixed inset-0 bg-gray-900/60 z-[8000] hidden justify-center items-center backdrop-blur-sm p-4 fade-in">
+        <div class="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
+                <h3 class="text-lg font-bold text-gray-800">Editar Usuario</h3>
+                <i class="fas fa-times cursor-pointer text-gray-400 hover:text-red-500" onclick="closeModal('modal-edit-user')"></i>
+            </div>
+            <form onsubmit="submitEditUser(event)" class="space-y-4">
+                <input type="hidden" id="eu-correo-original">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Usuario (Login)</label>
+                        <input type="text" id="eu-login" required class="w-full border border-gray-300 rounded-sm p-2 text-sm bg-gray-50 outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nombre Completo</label>
+                        <input type="text" id="eu-nombre" class="w-full border border-gray-300 rounded-sm p-2 text-sm bg-gray-50 outline-none focus:border-brand-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Correo Electrónico</label>
+                    <input type="email" id="eu-usuario" required class="w-full border border-gray-300 rounded-sm p-2 text-sm bg-gray-50 outline-none focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Contraseña</label>
+                    <input type="text" id="eu-password" required class="w-full border border-gray-300 rounded-sm p-2 text-sm bg-gray-50 outline-none focus:border-brand-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Rol</label>
+                        <select id="eu-rol" class="w-full border border-gray-300 rounded-sm p-2 text-sm bg-gray-50 outline-none focus:border-brand-500">
+                            <option value="Usuario">Usuario Estándar</option>
+                            <option value="Operador">Operador (Soporte)</option>
+                            <option value="Admin">Admin IT Total</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Departamento</label>
+                        <input type="text" id="eu-depart" required class="w-full border border-gray-300 rounded-sm p-2 text-sm bg-gray-50 outline-none focus:border-brand-500">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-brand-600 text-white font-bold py-2.5 rounded-sm hover:bg-brand-700 transition-colors mt-2 text-sm">Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        // 🚨 AQUÍ TU URL
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwhnUDk9QHxx-sXKiliF6f3mlxjcJ42EYcCzN5nrmd-DBsmT9gQ22cCHbEJI0EGwCNH/exec"; 
+
+        const state = {
+            user: null, tickets: [], usuarios: [], currentTicket: null, messages: [], currentTab: 'Todos', editingUser: null
+        };
+
+        let chatSyncInterval = null;
+        let globalSyncInterval = null;
+
+        const sucursales = {
+            "Grupo Imade": ["Central", "CEDIS", "CCT"],
+            "Sayer": ["CAES", "SAN CRISTOBAL", "VARIETÁ", "LIBERACIÓN", "UTATLÁN", "VILLANUEVA", "ESCUINTLA", "ZONA 2", "CHIMALTENANGO", "MAZATENANGO", "PUERTO SAN JOSÉ"]
+        };
+
+        // ================= INICIALIZACIÓN (VERIFICA LOGIN) =================
+        window.onload = async () => {
+            const userStr = sessionStorage.getItem('helpdesk_user');
+            if(!userStr) {
+                // Si no hay sesión, regresamos al index
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            const userData = JSON.parse(userStr);
+            // Validamos que tenga rol de administrador u operador, de lo contrario lo sacamos
+            const rolStr = String(userData.rol).toLowerCase();
+            if(!rolStr.includes('admin') && !rolStr.includes('operador') && rolStr !== 'it') {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            state.user = {
+                usuario: userData.login || userData.correo, // Ajustado según tu index.html
+                nombre: userData.nombre,
+                rol: userData.rol,
+                departamento: userData.departamento
+            };
+            
+            // Actualizamos la cabecera
+            document.getElementById('header-user-name').innerText = state.user.nombre || 'Administrador';
+            document.getElementById('header-user-email').innerText = state.user.usuario; 
+            document.getElementById('header-user-role').innerText = state.user.rol;
+            
+            if(window.Notification && Notification.permission !== "granted") Notification.requestPermission();
+            
+            showView('dashboard-view');
+            await loadTickets();
+            startGlobalSync();
+        };
+
+        // ================= UTILS & UI =================
+        function playNotificationSound() {
+            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+            audio.play().catch(e => {});
+        }
+
+        function showToast(message, type = 'success', duration = 4000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const borderColors = type === 'error' ? 'border-red-500' : (type === 'warning' ? 'border-yellow-500' : (type === 'info' ? 'border-accent-500' : 'border-brand-500'));
+            const iconColor = type === 'error' ? 'text-red-500' : (type === 'warning' ? 'text-yellow-500' : (type === 'info' ? 'text-accent-500' : 'text-brand-500'));
+            const icon = type === 'error' ? 'fa-circle-xmark' : (type === 'warning' ? 'fa-triangle-exclamation' : (type === 'info' ? 'fa-bell' : 'fa-circle-check'));
+            
+            toast.className = `bg-white border-l-4 ${borderColors} shadow-2xl flex items-center gap-3 fade-in transform transition-all duration-300 opacity-100 min-w-[300px] max-w-lg rounded-sm p-3 pointer-events-auto`;
+            toast.innerHTML = `<i class="fas ${icon} ${iconColor} text-xl"></i> <span class="text-sm font-bold text-gray-700">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('opacity-0', '-translate-y-2'); setTimeout(() => toast.remove(), 300); }, duration);
+        }
+
+        function showLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+
+        function showView(viewId) {
+            if(viewId !== 'ticket-detail-view') stopChatSync();
+            ['dashboard-view', 'ticket-detail-view', 'new-ticket-view', 'users-view', 'reports-view'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.add('hidden');
+            });
+            const viewEl = document.getElementById(viewId);
+            if(viewEl) {
+                viewEl.classList.remove('hidden');
+                viewEl.classList.remove('fade-in'); void viewEl.offsetWidth; viewEl.classList.add('fade-in');
+            }
+            updateActiveNav(viewId);
+        }
+
+        function updateActiveNav(viewId) {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('bg-brand-900', 'text-white');
+                link.classList.add('text-brand-100', 'hover:bg-brand-700');
+            });
+            let activeId = '';
+            if(viewId === 'dashboard-view' || viewId === 'new-ticket-view' || viewId === 'ticket-detail-view') activeId = 'nav-tickets';
+            else if(viewId === 'users-view') activeId = 'nav-users';
+            else if(viewId === 'reports-view') activeId = 'nav-reports';
+
+            if(activeId && document.getElementById(activeId)) {
+                document.getElementById(activeId).classList.remove('text-brand-100', 'hover:bg-brand-700');
+                document.getElementById(activeId).classList.add('bg-brand-900', 'text-white');
+            }
+        }
+
+        function formatSafeDate(dateString) {
+            if (!dateString) return 'Sin fecha';
+            const d = new Date(dateString);
+            return isNaN(d.getTime()) ? 'Dato no válido' : d.toLocaleString([], {dateStyle: 'short', timeStyle: 'short'});
+        }
+
+        function logout() {
+            sessionStorage.removeItem('helpdesk_user');
+            window.location.href = 'index.html';
+        }
+
+        // ================= LLAMADAS A API =================
+        async function apiCall(action, payload = {}) {
+            showLoader(true);
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST', headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: action, payload: payload })
+                });
+                const resultText = await response.text(); 
+                let result = JSON.parse(resultText); 
+                showLoader(false);
+                if (result.success) return result.data; else throw new Error(result.error); 
+            } catch (error) {
+                showLoader(false); throw error;
+            }
+        }
+
+        async function apiCallSilent(action, payload = {}) {
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST', headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: action, payload: payload })
+                });
+                const resultText = await response.text();
+                let result = JSON.parse(resultText);
+                if (result.success) return result.data; else throw new Error(result.error); 
+            } catch (error) { throw error; }
+        }
+
+        // ================= TICKETS DASHBOARD =================
+        function startGlobalSync() {
+            if(globalSyncInterval) clearInterval(globalSyncInterval);
+            globalSyncInterval = setInterval(async () => {
+                if(!state.user || document.getElementById('dashboard-view').classList.contains('hidden')) return;
+                try {
+                    const ticketsData = await apiCallSilent('obtenerTickets', { rol: 'IT' }); // Asume rol IT para traer todos
+                    const currentHash = state.tickets.map(t => t.id + t.fecha).join(',');
+                    const newHash = ticketsData.map(t => t.id + t.fecha).join(',');
+
+                    if(currentHash !== newHash && state.tickets.length > 0) {
+                        state.tickets = ticketsData; applyFilters(); playNotificationSound();
+                    } else {
+                        state.tickets = ticketsData; updateTicketCounts(state.tickets); 
+                    }
+                } catch(e) { console.error("Error en sincronización global:", e); }
+            }, 5000); 
+        }
+
+        async function loadTickets() {
+            try {
+                const tickets = await apiCall('obtenerTickets', { rol: 'IT' }); // Trae todos los tickets
+                state.tickets = tickets; 
+                document.getElementById('filter-search').value = ""; applyFilters();
+            } catch (err) { showToast("Error cargando tickets", "error"); }
+        }
+
+        function setTab(tabName) { state.currentTab = tabName; applyFilters(); }
+
+        function applyFilters() {
+            const searchFilter = document.getElementById('filter-search').value.toLowerCase().trim();
+            const tabFilter = state.currentTab || 'Todos';
+            
+            // Actualizar UI de Tabs
+            ['Todos', 'Abierto', 'En proceso', 'Pendiente', 'Cerrado'].forEach(t => {
+                const el = document.getElementById('tab-' + t);
+                const badge = document.getElementById('count-' + t.replace(' ','').toLowerCase());
+                if(t === tabFilter) {
+                    el.className = "pb-3 text-sm font-bold border-b-2 border-brand-600 text-brand-700 transition-colors flex items-center whitespace-nowrap";
+                    badge.className = "ml-2 bg-brand-100 text-brand-800 py-0.5 px-2 rounded-full text-[10px] font-bold";
+                } else {
+                    el.className = "pb-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-colors flex items-center whitespace-nowrap";
+                    badge.className = "ml-2 bg-gray-200 text-gray-600 py-0.5 px-2 rounded-full text-[10px] font-bold";
+                }
+            });
+
+            const baseFiltered = state.tickets.filter(t => {
+                const searchStr = `${t.usuario} ${t.titulo} ${t.id} ${t.nombre || ''} ${t.tecnico || ''}`.toLowerCase();
+                return searchFilter === "" || searchStr.includes(searchFilter);
+            });
+
+            const finalFiltered = baseFiltered.filter(t => tabFilter === 'Todos' || t.estado === tabFilter);
+            updateTicketCounts(baseFiltered); renderTicketsTable(finalFiltered);
+        }
+
+        function updateTicketCounts(baseFilteredTickets) {
+            document.getElementById('count-todos').innerText = baseFilteredTickets.length;
+            document.getElementById('count-abierto').innerText = baseFilteredTickets.filter(t => t.estado === 'Abierto').length;
+            document.getElementById('count-enproceso').innerText = baseFilteredTickets.filter(t => t.estado === 'En proceso').length;
+            document.getElementById('count-pendiente').innerText = baseFilteredTickets.filter(t => t.estado === 'Pendiente').length;
+            document.getElementById('count-cerrado').innerText = baseFilteredTickets.filter(t => t.estado === 'Cerrado').length;
+        }
+
+        function renderTicketsTable(tickets) {
+            const tbody = document.getElementById('tickets-tbody'); tbody.innerHTML = ''; 
+            if(!tickets || tickets.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-16 text-center text-gray-400"><i class="fas fa-inbox text-4xl mb-3 opacity-30 block"></i><span class="font-medium">No hay tickets.</span></td></tr>`; return;
+            }
+
+            tickets.forEach(t => {
+                let pColor = t.prioridad === 'Crítica' ? 'bg-red-100 text-red-800 border-red-200' : 
+                             t.prioridad === 'Alta' ? 'bg-orange-100 text-orange-800 border-orange-200' : 
+                             t.prioridad === 'Media' ? 'bg-brand-100 text-brand-800 border-brand-200' : 'bg-gray-100 text-gray-800 border-gray-200';
+                let sColor = t.estado === 'Cerrado' ? 'bg-gray-200 text-gray-700' : 
+                             t.estado === 'En proceso' ? 'bg-accent-100 text-accent-800' : 
+                             t.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' : 'bg-brand-100 text-brand-800';
+                let sLabel = t.estado === "Pendiente" ? "En Espera" : (t.estado === "Abierto" ? "Nuevo" : (t.estado || "N/A"));
+                
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-gray-200 hover:bg-brand-50 hover:shadow-sm cursor-pointer transition-all bg-white group whitespace-nowrap md:whitespace-normal";
+                tr.onclick = () => openTicket(t.id); 
+                
+                tr.innerHTML = `
+                    <td class="p-3 text-sm font-bold text-brand-700 group-hover:text-brand-900">${t.id}</td>
+                    <td class="p-3 text-sm font-medium truncate max-w-xs text-gray-800" title="${t.titulo}">${t.titulo || '-'}</td>
+                    <td class="p-3 text-xs text-gray-500 font-medium whitespace-nowrap">${formatSafeDate(t.fecha)}</td>
+                    <td class="p-3"><span class="px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider font-bold border ${pColor}">${t.prioridad || '-'}</span></td>
+                    <td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold ${sColor}">${sLabel}</span></td>
+                    <td class="p-3 text-xs flex flex-col">
+                        <span class="font-bold text-gray-700 truncate">${t.nombre || (t.usuario ? t.usuario.split('@')[0] : 'Usuario')}</span>
+                        <span class="text-[10px] text-gray-400 truncate">${t.empresa || ''} ${t.sucursal ? '- '+t.sucursal : ''}</span>
+                    </td>
+                    <td class="p-3 text-xs flex-col hidden md:flex">
+                        <span class="font-bold ${t.tecnico ? 'text-gray-700' : 'text-red-500'}">${t.tecnico || 'Sin Asignar'}</span>
+                        <span class="text-[10px] text-gray-400 uppercase">Técnico</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ================= GESTIÓN DETALLE DEL TICKET =================
+        async function openTicket(ticketId) {
+            try {
+                const data = await apiCall('obtenerTicket', { ticketId });
+                state.currentTicket = data.ticket; 
+                state.messages = data.mensajes || [];
+                
+                document.getElementById('dt-id').innerText = data.ticket.id || 'N/A';
+                document.getElementById('dt-title').innerText = data.ticket.titulo || 'Sin Asunto';
+                document.getElementById('dt-user').innerText = `${data.ticket.nombre || ''} (${data.ticket.usuario || 'Desconocido'})`;
+                
+                const tInfo = [];
+                if(data.ticket.empresa) tInfo.push(`<i class="fas fa-building mr-1.5 text-gray-400"></i> ${data.ticket.empresa}`);
+                if(data.ticket.sucursal) tInfo.push(`<i class="fas fa-map-marker-alt mr-1.5 text-gray-400"></i> ${data.ticket.sucursal}`);
+                if(data.ticket.telefono) tInfo.push(`<i class="fas fa-phone mr-1.5 text-gray-400"></i> ${data.ticket.telefono}`);
+                document.getElementById('dt-extra').innerHTML = tInfo.join('<span class="mx-3 opacity-30">|</span>');
+
+                if(data.ticket.anydesk) {
+                    document.getElementById('dt-anydesk-text').innerText = data.ticket.anydesk;
+                    document.getElementById('dt-anydesk-container').classList.remove('hidden');
+                } else { document.getElementById('dt-anydesk-container').classList.add('hidden'); }
+
+                document.getElementById('dt-status').innerText = data.ticket.estado || 'Abierto';
+                document.getElementById('dt-priority').innerText = data.ticket.prioridad || 'Pendiente';
+                document.getElementById('dt-tecnico-badge').innerText = data.ticket.tecnico ? `Asignado a: ${data.ticket.tecnico}` : 'Ticket sin asignar';
+                document.getElementById('dt-desc').innerText = data.ticket.descripcion || '';
+
+                if (data.ticket.archivo) { 
+                    document.getElementById('dt-adjunto-link').href = data.ticket.archivo; 
+                    document.getElementById('dt-adjunto-container').classList.remove('hidden'); 
+                } else { document.getElementById('dt-adjunto-container').classList.add('hidden'); }
+
+                // Rellenar controles IT
+                document.getElementById('ctrl-estado').value = data.ticket.estado || 'Abierto';
+                document.getElementById('ctrl-prioridad').value = data.ticket.prioridad || 'Pendiente';
+                document.getElementById('ctrl-tecnico').value = data.ticket.tecnico || state.user.nombre;
+
+                renderMessages(); showView('ticket-detail-view'); startChatSync();
+            } catch (err) { showToast("Error al abrir ticket.", "error"); }
+        }
+
+        async function updateTicketState() {
+            const nEst = document.getElementById('ctrl-estado').value;
+            const nPrio = document.getElementById('ctrl-prioridad').value;
+            const nTec = document.getElementById('ctrl-tecnico').value;
+            try {
+                await apiCall('actualizarTicket', { ticketId: state.currentTicket.id, estado: nEst, prioridad: nPrio, tecnico: nTec });
+                showToast(`Ticket actualizado exitosamente.`, "info");
+                state.currentTicket.estado = nEst; state.currentTicket.prioridad = nPrio; state.currentTicket.tecnico = nTec;
+                
+                document.getElementById('dt-status').innerText = nEst; 
+                document.getElementById('dt-priority').innerText = nPrio;
+                document.getElementById('dt-tecnico-badge').innerText = `Asignado a: ${nTec}`;
+                loadTickets();
+            } catch (err) { showToast("Fallo al actualizar", "error"); }
+        }
+
+        function confirmDeleteTicket() {
+            document.getElementById('delete-ticket-id').innerText = state.currentTicket.id;
+            document.getElementById('delete-confirm-input').value = '';
+            openModal('modal-delete-confirm');
+        }
+
+        async function executeDeleteTicket() {
+            const input = document.getElementById('delete-confirm-input').value;
+            if(input !== 'ELIMINAR') { showToast("Debe escribir ELIMINAR para confirmar.", "warning"); return; }
+            
+            closeModal('modal-delete-confirm'); showLoader(true);
+            try {
+                await apiCall('eliminarTicket', { ticketId: state.currentTicket.id });
+                showToast("Ticket eliminado permanentemente.", "success");
+                showView('dashboard-view'); await loadTickets();
+            } catch(e) { showLoader(false); showToast("Fallo eliminación", "error");}
+        }
+
+        // ================= CHAT IT =================
+        function renderMessages(scrollToBottom = true) {
+            const container = document.getElementById('chat-container'); container.innerHTML = '';
+            if(state.messages.length === 0) {
+                container.innerHTML += `<div class="flex flex-col items-center justify-center h-full text-gray-400 opacity-50"><i class="fas fa-comments text-5xl mb-4"></i><p class="text-sm font-medium">Sin comentarios aún.</p></div>`;
+            }
+
+            state.messages.forEach(m => {
+                const autorStr = m.autor ? m.autor.toLowerCase() : '';
+                const isIT = (autorStr.includes('admin') || autorStr.includes('tecnologia') || autorStr.includes('it'));
+                const tStr = formatSafeDate(m.fecha);
+                let displayName = m.autor.split('@')[0];
+                let msgText = m.mensaje ? m.mensaje.trim() : (m.archivo ? "📷 Adjunto" : "");
+                
+                const div = document.createElement('div'); div.className = "mb-5 animate-fade-in flex flex-col";
+                div.innerHTML = `
+                    <div class="flex gap-3 w-full">
+                        <div class="w-9 h-9 rounded-full ${isIT ? 'bg-brand-600' : 'bg-gray-400'} text-white flex items-center justify-center text-xs shrink-0 mt-1 shadow-sm">
+                            ${isIT ? '<i class="fas fa-headset"></i>' : '<i class="fas fa-user"></i>'}
+                        </div>
+                        <div class="flex flex-col flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="font-bold text-sm text-gray-800 truncate">${displayName}</span>
+                                <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded-sm ${isIT ? 'bg-brand-100 text-brand-700' : 'bg-gray-200 text-gray-600'}">${isIT ? 'IT Helpdesk' : 'Usuario'}</span>
+                                <span class="text-xs text-gray-400 ml-auto whitespace-nowrap">${tStr}</span>
+                            </div>
+                            <div class="bg-white p-3.5 rounded-md shadow-sm border ${isIT ? 'border-brand-200' : 'border-gray-200'} text-sm text-gray-700 relative">
+                                ${isIT ? '<div class="absolute top-0 left-0 w-1 h-full bg-brand-500 rounded-l-md"></div><div class="pl-1">' : '<div>'}
+                                    <div class="whitespace-pre-wrap break-words leading-relaxed">${msgText}</div>
+                                    ${m.archivo ? `<div class="mt-3 pt-3 border-t border-gray-100"><a href="${m.archivo}" target="_blank" class="inline-flex items-center text-[12px] font-bold text-accent-700 hover:text-accent-900 hover:underline bg-accent-50 px-3 py-2 rounded-sm border border-accent-100 transition-colors w-max"><i class="fas fa-paperclip text-lg mr-2"></i> Abrir Archivo</a></div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                container.appendChild(div);
+            });
+            if(scrollToBottom) container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input'); const fileInput = document.getElementById('chat-file');
+            const msg = input.value.trim();
+            if(!msg && fileInput.files.length === 0) return; 
+
+            let fileData = null;
+            if(fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileData = await new Promise((res, rej) => {
+                    const reader = new FileReader(); reader.readAsDataURL(file);
+                    reader.onload = () => res({ base64: reader.result, name: file.name });
+                });
+            }
+
+            input.value = ''; fileInput.value = ''; document.getElementById('file-preview-pill').classList.add('hidden');
+            try {
+                await apiCall('agregarMensaje', { ticketId: state.currentTicket.id, autor: state.user.usuario, mensaje: msg, archivoBase64: fileData ? fileData.base64 : null, archivoNombre: fileData ? fileData.name : null });
+                const data = await apiCallSilent('obtenerTicket', { ticketId: state.currentTicket.id });
+                state.messages = data.mensajes || []; renderMessages(true);
+            } catch (err) { input.value = msg; showToast("Fallo envío", "error");}
+        }
+
+        function startChatSync() {
+            stopChatSync(); 
+            chatSyncInterval = setInterval(async () => {
+                if(!state.currentTicket) return;
+                try {
+                    const data = await apiCallSilent('obtenerTicket', { ticketId: state.currentTicket.id });
+                    if(data && data.mensajes && data.mensajes.length > state.messages.length) {
+                        state.messages = data.mensajes;
+                        const c = document.getElementById('chat-container');
+                        const isAtBottom = c.scrollHeight - c.scrollTop <= c.clientHeight + 50;
+                        renderMessages(false); if(isAtBottom) c.scrollTop = c.scrollHeight; playNotificationSound();
+                    }
+                } catch(e) {}
+            }, 5000); 
+        }
+        function stopChatSync() { if(chatSyncInterval) { clearInterval(chatSyncInterval); chatSyncInterval = null; } }
+
+        // ================= USUARIOS =================
+        async function loadUsers() {
+            try {
+                const users = await apiCall('obtenerUsuarios'); state.usuarios = users;
+                renderUsersTable(); showView('users-view');
+            } catch (err) { showToast("Error cargando usuarios", "error"); }
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('users-tbody'); tbody.innerHTML = '';
+            state.usuarios.forEach(u => {
+                const tr = document.createElement('tr'); tr.className = "border-b border-gray-200 hover:bg-gray-50 text-sm transition-colors whitespace-nowrap";
+                const rolStr = u.rol ? u.rol.toLowerCase() : '';
+                const isAdmin = rolStr.includes('admin') || rolStr === 'it';
+                const rolColor = isAdmin ? 'bg-brand-100 text-brand-800' : 'bg-gray-200 text-gray-700';
+
+                tr.innerHTML = `
+                    <td class="p-3 text-gray-600 font-medium">${u.loginUsuario || u.Login || ''}</td>
+                    <td class="p-3 font-bold text-gray-800">${u.nombre || u.Nombre || '-'}</td>
+                    <td class="p-3 text-gray-600">${u.usuario || u.Correo || ''}</td>
+                    <td class="p-3"><span class="px-2 py-1 rounded-sm text-xs font-semibold ${rolColor}">${u.rol || u.Rol || 'Usuario'}</span></td>
+                    <td class="p-3 text-gray-500 font-mono tracking-widest group">•••••••• <span class="hidden group-hover:inline text-brand-600 cursor-pointer ml-2" onclick="alert('Contraseña: ${u.password || u.Contraseña}')"><i class="fas fa-eye"></i></span></td>
+                    <td class="p-3 text-center"><button onclick='openEditUser(${JSON.stringify(u)})' class="text-accent-500 hover:text-accent-700"><i class="fas fa-edit"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function submitNewUser(e) {
+            e.preventDefault();
+            const payload = {
+                loginUsuario: document.getElementById('nu-login').value, nombre: document.getElementById('nu-nombre').value,
+                usuario: document.getElementById('nu-usuario').value, password: document.getElementById('nu-password').value,
+                rol: document.getElementById('nu-rol').value, departamento: document.getElementById('nu-depart').value
+            };
+            try {
+                await apiCall('crearUsuario', payload);
+                document.getElementById('form-new-user').reset(); showToast("Usuario registrado."); loadUsers(); 
+            } catch (err) { showToast("Fallo al crear", "error"); }
+        }
+
+        function openEditUser(u) {
+            document.getElementById('eu-correo-original').value = u.usuario || u.Correo || ''; 
+            document.getElementById('eu-login').value = u.loginUsuario || u.Login || ''; 
+            document.getElementById('eu-nombre').value = u.nombre || u.Nombre || '';
+            document.getElementById('eu-usuario').value = u.usuario || u.Correo || ''; 
+            document.getElementById('eu-password').value = u.password || u.Contraseña || '';
+            document.getElementById('eu-rol').value = u.rol || u.Rol || 'Usuario'; 
+            document.getElementById('eu-depart').value = u.departamento || u.Departamento || '';
+            openModal('modal-edit-user');
+        }
+
+        async function submitEditUser(e) {
+            e.preventDefault();
+            const payload = {
+                correoOriginal: document.getElementById('eu-correo-original').value, loginUsuario: document.getElementById('eu-login').value,
+                nombre: document.getElementById('eu-nombre').value, usuario: document.getElementById('eu-usuario').value,
+                password: document.getElementById('eu-password').value, rol: document.getElementById('eu-rol').value,
+                departamento: document.getElementById('eu-depart').value
+            };
+            closeModal('modal-edit-user');
+            try { await apiCall('actualizarUsuario', payload); showToast("Usuario actualizado."); loadUsers(); } catch (err) { showToast("Fallo actualización", "error");}
+        }
+
+        // ================= REPORTES =================
+        async function loadReports() {
+            try {
+                const allTickets = await apiCall('obtenerTickets', { rol: 'IT' }); 
+                document.getElementById('rep-total').innerText = allTickets.length;
+                document.getElementById('rep-abiertos').innerText = allTickets.filter(t => t.estado === 'Abierto' || t.estado === 'Pendiente').length;
+                document.getElementById('rep-proceso').innerText = allTickets.filter(t => t.estado === 'En proceso').length;
+                document.getElementById('rep-cerrados').innerText = allTickets.filter(t => t.estado === 'Cerrado').length;
+                window.reportData = allTickets; showView('reports-view');
+            } catch (err) {}
+        }
+
+        function exportarCSV() {
+            if(!window.reportData || window.reportData.length === 0) return;
+            const headers = ['ID Ticket', 'Fecha', 'Nombre Solicitante', 'Correo', 'Empresa', 'Sucursal', 'Telefono', 'AnyDesk', 'Asunto', 'Descripcion', 'Estado', 'Prioridad', 'Tecnico'];
+            let csv = headers.join(',') + '\n';
+            window.reportData.forEach(t => {
+                const descLimpia = (t.descripcion || '').replace(/"/g, '""').replace(/\n/g, ' ');
+                csv += `"${t.id}","${formatSafeDate(t.fecha)}","${t.nombre}","${t.usuario}","${t.empresa}","${t.sucursal}","${t.telefono}","${t.anydesk}","${t.titulo}","${descLimpia}","${t.estado}","${t.prioridad}","${t.tecnico}"\n`;
+            });
+            const blob = new Blob(["\uFEFF"+csv], { type: 'text/csv;charset=utf-8;' }); 
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob); link.download = `Reporte_Admin_Imade_${new Date().getTime()}.csv`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        // ================= CREAR TICKET (ADMIN) =================
+        function updateSucursales() {
+            const emp = document.getElementById('nt-empresa').value; const suc = document.getElementById('nt-sucursal');
+            suc.innerHTML = '<option value="">Seleccione sucursal...</option>';
+            if(sucursales[emp]) sucursales[emp].forEach(s => suc.innerHTML += `<option value="${s}">${s}</option>`);
+        }
+        function handleFileSelection(input, targetPillId, targetTextId) {
+            const pill = document.getElementById(targetPillId); const text = document.getElementById(targetTextId);
+            if (input.files.length > 0) { text.innerText = input.files[0].name; pill.classList.remove('hidden'); } else pill.classList.add('hidden');
+        }
+        function autoExpand(field) {
+            field.style.height = 'inherit';
+            field.style.height = field.scrollHeight + 'px';
+        }
+    </script>
+</body>
+</html>
