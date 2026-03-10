@@ -30,7 +30,7 @@
 
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
         <!-- Logo / Icono -->
-        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-brand-100">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-brand-100 shadow-sm">
             <i class="ph ph-headset text-3xl text-brand-600"></i>
         </div>
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
@@ -45,14 +45,15 @@
         <div class="bg-white py-8 px-4 shadow sm:rounded-xl sm:px-10 border border-gray-100">
             
             <!-- Mensaje de Error (Oculto por defecto) -->
-            <div id="error-message" class="hidden mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+            <div id="error-message" class="hidden mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-md transition-all duration-300">
                 <div class="flex items-center">
                     <i class="ph-fill ph-warning-circle text-red-500 text-xl mr-2"></i>
-                    <p id="error-text" class="text-sm text-red-700"></p>
+                    <p id="error-text" class="text-sm text-red-700 font-medium"></p>
                 </div>
             </div>
 
-            <form id="login-form" class="space-y-6">
+            <!-- Formulario (novalidate evita que el navegador bloquee silenciosamente) -->
+            <form id="login-form" class="space-y-6" novalidate>
                 <!-- Input: Login -->
                 <div>
                     <label for="login" class="block text-sm font-medium text-gray-700">
@@ -62,7 +63,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="ph ph-user text-gray-400 text-lg"></i>
                         </div>
-                        <input id="login" name="login" type="text" required
+                        <input id="login" name="login" type="text" 
                             class="focus:ring-brand-500 focus:border-brand-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2.5 border outline-none transition-colors"
                             placeholder="Ej. admin o h.reyes@...">
                     </div>
@@ -77,7 +78,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="ph ph-lock-key text-gray-400 text-lg"></i>
                         </div>
-                        <input id="password" name="password" type="password" required
+                        <input id="password" name="password" type="password" 
                             class="focus:ring-brand-500 focus:border-brand-500 block w-full pl-10 pr-10 sm:text-sm border-gray-300 rounded-md py-2.5 border outline-none transition-colors"
                             placeholder="••••••••">
                         <!-- Toggle de contraseña -->
@@ -90,7 +91,7 @@
                 <!-- Botón de Submit -->
                 <div>
                     <button type="submit" id="submit-btn"
-                        class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                        class="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed h-11">
                         <span id="btn-text">Iniciar Sesión</span>
                         <i id="btn-spinner" class="ph ph-spinner animate-spin text-xl hidden"></i>
                     </button>
@@ -98,14 +99,14 @@
             </form>
             
             <div class="mt-6 text-center">
-                <p class="text-xs text-gray-500">Conectado a Google Sheets Database</p>
+                <p class="text-xs text-gray-400">Conectado a Google Sheets Database</p>
             </div>
         </div>
     </div>
 
     <script>
         // URL de tu Google Apps Script
-        const SCRIPT_URL = https://script.google.com/macros/s/AKfycbyk4_jn7AwQUgDp7yUlc4-CBJnIWSBiPeAp0VZy2VKiS6rzpYSsHQlKPMM3UPrTHCs/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhnUDk9QHxx-sXKiliF6f3mlxjcJ42EYcCzN5nrmd-DBsmT9gQ22cCHbEJI0EGwCNH/exec";
 
         // Función para mostrar/ocultar contraseña
         function togglePassword() {
@@ -123,7 +124,7 @@
             }
         }
 
-        // Función para mostrar errores
+        // Función para mostrar errores visuales
         function showError(message) {
             const errorDiv = document.getElementById('error-message');
             const errorText = document.getElementById('error-text');
@@ -131,13 +132,15 @@
             errorDiv.classList.remove('hidden');
             
             // Efecto de sacudida (shake)
+            errorDiv.classList.remove('animate-pulse');
+            void errorDiv.offsetWidth; // Forzar reflow para reiniciar la animación
             errorDiv.classList.add('animate-pulse');
             setTimeout(() => errorDiv.classList.remove('animate-pulse'), 500);
         }
 
         // Manejar el envío del formulario
         document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
+            e.preventDefault(); // Evita que la página se recargue
             
             const loginVal = document.getElementById('login').value.trim();
             const passwordVal = document.getElementById('password').value;
@@ -146,32 +149,58 @@
             const btnSpinner = document.getElementById('btn-spinner');
             const errorDiv = document.getElementById('error-message');
 
-            // 1. Estado de "Cargando"
+            // 1. Validación manual (Para evitar fallos silenciosos)
+            if (!loginVal || !passwordVal) {
+                showError("Por favor, ingresa tu usuario y contraseña.");
+                return;
+            }
+
+            // 2. Ocultar errores previos y mostrar estado de "Cargando"
+            errorDiv.classList.add('hidden');
             btn.disabled = true;
             btnText.classList.add('hidden');
             btnSpinner.classList.remove('hidden');
-            errorDiv.classList.add('hidden');
+
+            console.log("Iniciando conexión con Google Sheets...");
 
             try {
-                // 2. Llamada a Google Sheets
-                // Agregamos ?action=getUsers y ?sheet=usuarios por si tu script lo requiere para filtrar.
-                const response = await fetch(`${SCRIPT_URL}?action=getUsers&sheet=usuarios`);
+                // 3. Llamada a Google Sheets con manejo avanzado de redirecciones
+                const fetchUrl = `${SCRIPT_URL}?action=getUsers&sheet=usuarios`;
+                const response = await fetch(fetchUrl, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
                 
-                if (!response.ok) throw new Error("Error de red.");
+                // Extraemos el texto crudo primero para diagnosticar qué envía Google
+                const responseText = await response.text();
                 
-                const data = await response.json();
+                let data;
+                try {
+                    // Intentamos convertir a JSON
+                    data = JSON.parse(responseText);
+                    console.log("Datos recibidos:", data);
+                } catch (parseError) {
+                    console.error("Respuesta del servidor no es JSON:", responseText);
+                    throw new Error("Error de permisos en Google Script. Asegúrate de implementarlo como 'Cualquier persona'.");
+                }
                 
-                // 3. Buscar coincidencia (Soporta que devuelva un Array directo o un objeto {data: [...]})
+                // Si el script de google devolvió un error JSON programado por nosotros
+                if (data.error) {
+                    throw new Error("Error de BD: " + data.error);
+                }
+                
+                // 4. Buscar coincidencia en los datos
                 let usersList = Array.isArray(data) ? data : (data.data || data.users || []);
                 
-                // Validar credenciales (busca por Login exacto y Contraseña)
                 const userMatched = usersList.find(u => 
-                    String(u.Login).toLowerCase() === loginVal.toLowerCase() && 
-                    String(u['Contraseña']) === passwordVal
+                    String(u.Login).trim().toLowerCase() === loginVal.toLowerCase() && 
+                    String(u['Contraseña']).trim() === passwordVal
                 );
 
                 if (userMatched) {
-                    // ¡Éxito! Guardamos datos básicos en sessionStorage para uso en las siguientes páginas
+                    console.log("¡Usuario autenticado!", userMatched);
+                    
+                    // Guardamos la sesión
                     sessionStorage.setItem('helpdesk_user', JSON.stringify({
                         login: userMatched.Login,
                         nombre: userMatched.Nombre,
@@ -179,7 +208,7 @@
                         departamento: userMatched.Departamento
                     }));
 
-                    // 4. Redirección basada en el Rol
+                    // 5. Redirección basada en el Rol
                     const rol = String(userMatched.Rol).trim();
                     
                     if (rol === 'Admin') {
@@ -191,17 +220,18 @@
                     } else {
                         showError(`Rol no configurado: ${rol}. Contacte soporte.`);
                     }
-
                 } else {
                     // Fallo de credenciales
                     showError("Usuario o contraseña incorrectos.");
                 }
 
             } catch (error) {
-                console.error("Error en login:", error);
-                showError("No se pudo conectar con la base de datos de Google Sheets. Asegúrate de que el Script esté publicado correctamente.");
+                console.error("Error capturado:", error);
+                // Retraso artificial mínimo para que el usuario vea que al menos se intentó cargar
+                await new Promise(resolve => setTimeout(resolve, 500));
+                showError(error.message || "No se pudo establecer conexión. Revisa tu internet o el enlace del Script.");
             } finally {
-                // 5. Restaurar botón a estado normal
+                // 6. Restaurar botón a estado normal
                 btn.disabled = false;
                 btnText.classList.remove('hidden');
                 btnSpinner.classList.add('hidden');
